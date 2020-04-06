@@ -7,7 +7,7 @@ from report_type import ReportType
 from main_report import MainReport
 from debt_report import DebtReport
 from benefit_report import BenefitReport
-from crash_report import CrashReport
+from cash_report import CrashReport
 import json
 import pymysql.cursors
 from db_connection import DBConnection

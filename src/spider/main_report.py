@@ -7,8 +7,8 @@ class MainReport:
         self.profit_growth_rate=data[2]
         self.recurrent_net_profit=data[3]  # 扣非净利润
         self.recurrent_net_profit_growth_rate=data[4]
-        self.revenu=data[5]
-        self.revenu_growth_rate=data[6]
+        self.revenu=data[5]                # 营收
+        self.revenu_growth_rate=data[6]       #营收增长率
         self.net_profit_margin=data[12]        #净利率
         self.gross_profit_ratio=data[13]      #毛利率
         self.roe=data[14]
