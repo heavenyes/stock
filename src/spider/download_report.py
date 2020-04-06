@@ -27,8 +27,8 @@ class DownloadReport:
         print("download report code: %s name: %s"% (self.code,name))
         self.driver.get("http://stockpage.10jqka.com.cn/"+str(self.code)+"/finance/")
         self.driver.switch_to.frame("dataifm")
-        if name :
-            self.driver.find_element_by_link_text(name).click()
+        self.driver.find_element_by_link_text(name).click()
+        time.sleep(1)
         self.driver.find_element_by_id("exportButton").click()
         time.sleep(3)
 
