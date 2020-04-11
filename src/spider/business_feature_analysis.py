@@ -23,6 +23,21 @@ class BusinessFeatureAnalysis:
             return reportList
         finally:
             connection.close()
+    
+    def queryEstimationData(self):
+        connection=DBConnection.getConnection()
+        try:
+
+            with connection.cursor() as cursor:
+                sql = "SELECT * FROM `trading_report` WHERE `stock_code`=%s order by report_peroid desc"
+                cursor.execute(sql, (self.code,))
+                result = cursor.fetchall()
+                reportList=[]
+                for item in result:
+                    reportList.append(item)
+            return reportList
+        finally:
+            connection.close()
 
     def output(self):
 
@@ -40,6 +55,8 @@ class BusinessFeatureAnalysis:
 
         bills_accounts_receivable_ratio=[] #应收账款占收入
         days_sales_of_outstanding=[] #应收账款周转天数
+        inventory_ratio=[]  #存货占收入
+        days_sales_of_inventory=[] #存货周转天数
 
         fixed_assets_ratio=[]  #固定资产比重
         roe=[]
@@ -52,24 +69,36 @@ class BusinessFeatureAnalysis:
         cash_revenu_ratio=[] #经营性现金流/收入
         cash_profit_ratio=[] #经营性现金流/利润
 
+        #财务数据
         reportAllList=self.queryData()
         reportMap = {report["report_peroid"]:report for report in reportAllList}
         reportList= list(filter(lambda x: x["quarter"] ==4, reportAllList)) #取年度
-        reportList.insert(0,reportAllList[:1][0])
+        
+        lastReport=reportAllList[:1][0]  #最新的报告期
+        if lastReport["quarter"]!=4:
+            reportList.insert(0,lastReport)
 
+        
+        #估值数据 取报告期月份最小pe,pb
+        pe=[]
+        pb=[]
+        estimateReportMap = {r["report_peroid"][:7]: r for r in self.queryEstimationData()}
+        
         for report in reportList:
             peroid.append(report["report_peroid"])
             main_report=json.loads(report["main_report"])
             revenu=main_report["operating_revenue"]
-            revenu_growth_rate.append(main_report["operating_revenue_growth_rate"])
-            profit_growth_rate.append(main_report["net_profit_growth_rate"])
-            recurrent_net_profit_growth_rate.append(main_report["recurrent_net_profit_growth_rate"])
+            revenu_growth_rate.append(self.percentageNum(main_report["operating_revenue_growth_rate"]))
+            profit_growth_rate.append(self.percentageNum(main_report["net_profit_growth_rate"]))
+            recurrent_net_profit_growth_rate.append(self.percentageNum(main_report["recurrent_net_profit_growth_rate"]))
             gross_profit_ratio.append(main_report["gross_profit_ratio"])
             leverage_ratio.append(main_report["leverage_ratio"])
             days_sales_of_outstanding.append(main_report["days_sales_of_outstanding"])
+           
+            days_sales_of_inventory.append(main_report["days_sales_of_inventory"])
 
-            roe.append(main_report["roe"])
-            net_profit_margin.append(main_report["net_profit_margin"])
+            roe.append(self.percentageNum(main_report["roe"]))
+            net_profit_margin.append(self.percentageNum(main_report["net_profit_margin"]))
 
             benefit_report=json.loads(report["benefit_report"])
 
@@ -87,6 +116,7 @@ class BusinessFeatureAnalysis:
 
             debt_report=json.loads(report["debt_report"])
             bills_accounts_receivable_ratio.append(self.percentage(self.getNum(debt_report["bills_accounts_receivable"]),revenu))
+            inventory_ratio.append(self.percentage(self.getNum(debt_report["inventory"]),revenu))
             fixed_assets_ratio.append(self.percentage(self.getNum(debt_report["total_fixed_assets"]),self.getNum(debt_report["total_assets"])))
             #权益乘数
             financial_leverage.append(main_report["financial_leverage"])
@@ -108,7 +138,14 @@ class BusinessFeatureAnalysis:
             cash_revenu_ratio.append(self.percentage(self.getNum(cash_report["cash_from_selling_commodities_or_offering_labor"]),revenu))
             cash_profit_ratio.append(self.percentage(self.getNum(cash_report["cash_flow_generated_from_operating_activities_net_amount"]),self.getNum(main_report["net_profit"])))
 
-        dict = {
+            
+            # pe pb
+            estimateReport=estimateReportMap.get(report["report_peroid"][:7])
+            tradingReport = json.loads(estimateReport["trading_report"])
+            pe.append(tradingReport["pe"])
+            pb.append(tradingReport["pb"])
+
+        data = {
             '报告期':peroid,
             'roe':roe,
             '净利率':net_profit_margin,
@@ -123,18 +160,22 @@ class BusinessFeatureAnalysis:
             '管理费用率':managing_costs_ratio,
             '研发费用率':research_and_development_expense_ratio,
             '财务费用率':financing_costs_ratio,
-            '资产负债率':leverage_ratio,
             '应收账款占收入':bills_accounts_receivable_ratio,
             '应收账款周转天数':days_sales_of_outstanding,
+            '存货占收入': inventory_ratio,
+            '存货周转天数': days_sales_of_inventory,
             '固定资产占总资产比重':fixed_assets_ratio,
             '总资产增长率':total_assets_growth_rate,
+            '资产负债率':leverage_ratio,
             '销售收现比':cash_revenu_ratio,
-            '经营性现金流/净利润':cash_profit_ratio
+            '经营性现金流/净利润':cash_profit_ratio,
+            "pe":pe,
+            "pb":pb
             }
- 
+        
         # creating a dataframe from a dictionary 
-        df = pd.DataFrame(dict)
-        df.to_csv("{0}生意特性.csv".format(self.code),index=False)
+        df = pd.DataFrame(data,columns=data.keys()).T
+        df.to_csv("{0}生意特性.csv".format(self.code),index=True)
 
     
     def get_total_assets_turnover(self,peroid,reportMap):
@@ -170,6 +211,9 @@ class BusinessFeatureAnalysis:
     
     def round(self,num):
         return round(num,3)
+
+    def percentageNum(self,num):
+        return str(round(num,2))+"%"
 
     def getNum(self,num):
         try:
