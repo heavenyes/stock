@@ -85,7 +85,12 @@ class BusinessFeatureAnalysis:
         estimateReportMap = {r["report_peroid"][:7]: r for r in self.queryEstimationData()}
         
         for report in reportList:
+           
+            if report["main_report"]==None or report["debt_report"]==None or report["cash_report"]==None:
+                continue
+            
             peroid.append(report["report_peroid"])
+
             main_report=json.loads(report["main_report"])
             revenu=main_report["operating_revenue"]
             revenu_growth_rate.append(self.percentageNum(main_report["operating_revenue_growth_rate"]))
