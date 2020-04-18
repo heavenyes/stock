@@ -53,6 +53,7 @@ class BusinessFeatureAnalysis:
         financing_costs_ratio=[]    #财务费用率
         leverage_ratio=[] #资产负债率
 
+        net_working_capital=[] #净营运资金   
         bills_accounts_receivable_ratio=[] #应收账款占收入
         days_sales_of_outstanding=[] #应收账款周转天数
         inventory_ratio=[]  #存货占收入
@@ -96,11 +97,11 @@ class BusinessFeatureAnalysis:
             revenu_growth_rate.append(self.percentageNum(main_report["operating_revenue_growth_rate"]))
             profit_growth_rate.append(self.percentageNum(main_report["net_profit_growth_rate"]))
             recurrent_net_profit_growth_rate.append(self.percentageNum(main_report["recurrent_net_profit_growth_rate"]))
-            gross_profit_ratio.append(main_report["gross_profit_ratio"])
-            leverage_ratio.append(main_report["leverage_ratio"])
-            days_sales_of_outstanding.append(main_report["days_sales_of_outstanding"])
+            gross_profit_ratio.append(self.percentageNum(main_report["gross_profit_ratio"]))
+            leverage_ratio.append(self.percentageNum(main_report["leverage_ratio"]))
+            days_sales_of_outstanding.append(self.round(main_report["days_sales_of_outstanding"]))
            
-            days_sales_of_inventory.append(main_report["days_sales_of_inventory"])
+            days_sales_of_inventory.append(self.round(main_report["days_sales_of_inventory"]))
 
             roe.append(self.percentageNum(main_report["roe"]))
             net_profit_margin.append(self.percentageNum(main_report["net_profit_margin"]))
@@ -124,10 +125,15 @@ class BusinessFeatureAnalysis:
             inventory_ratio.append(self.percentage(self.getNum(debt_report["inventory"]),revenu))
             fixed_assets_ratio.append(self.percentage(self.getNum(debt_report["total_fixed_assets"]),self.getNum(debt_report["total_assets"])))
             #权益乘数
-            financial_leverage.append(main_report["financial_leverage"])
+            financial_leverage.append(self.round(main_report["financial_leverage"]))
 
             #总资产周转率
-            total_assets_turnover.append(main_report["total_assets_turnover"]) 
+            total_assets_turnover.append(self.round(main_report["total_assets_turnover"])) 
+
+            #(应收账款 + 其他应收款 + 预付账款 + 存货)  -(应付账款 + 预收款项 + 其他应付款)
+            nwc=(self.getNum(debt_report["bills_accounts_receivable"]) +self.getNum(debt_report["other_receivable"]) + self.getNum(debt_report["prepaid_accounts"] + self.getNum(debt_report["inventory"]))) - (self.getNum(debt_report["bills_account_payable"])+self.getNum(debt_report["accounts_received_in_advance"]+self.getNum(debt_report["other_payables"])))
+            
+            net_working_capital.append(format(int(nwc),","))
 
             #total_assets_growth_rate
             before_peroid = self.getBeforeYear(report["report_peroid"])
@@ -146,34 +152,39 @@ class BusinessFeatureAnalysis:
             
             # pe pb
             estimateReport=estimateReportMap.get(report["report_peroid"][:7])
-            tradingReport = json.loads(estimateReport["trading_report"])
-            pe.append(tradingReport["pe"])
-            pb.append(tradingReport["pb"])
+            if estimateReport!=None: 
+                tradingReport = json.loads(estimateReport["trading_report"])
+                pe.append(self.round(tradingReport["pe"]))
+                pb.append(self.round(tradingReport["pb"]))
+            else:
+                pe.append("--")
+                pb.append("--")
 
         data = {
             '报告期':peroid,
-            'roe':roe,
+            '营收增速':revenu_growth_rate, 
+            '毛利率':gross_profit_ratio,
             '净利率':net_profit_margin,
             '总资产周转率':total_assets_turnover,
             '财务杠杆':financial_leverage,
-            '营收增速':revenu_growth_rate,
+            'roe':roe,
             '利润增速':profit_growth_rate,
             '扣非净利润增速': recurrent_net_profit_growth_rate,
-            '毛利率':gross_profit_ratio,
             '四项费用率':four_fee_ratio,
             '销售费用率':marketing_costs_ratio,
             '管理费用率':managing_costs_ratio,
             '研发费用率':research_and_development_expense_ratio,
             '财务费用率':financing_costs_ratio,
+            '净营运资本':net_working_capital,
             '应收账款占收入':bills_accounts_receivable_ratio,
             '应收账款周转天数':days_sales_of_outstanding,
             '存货占收入': inventory_ratio,
             '存货周转天数': days_sales_of_inventory,
             '固定资产占总资产比重':fixed_assets_ratio,
-            '总资产增长率':total_assets_growth_rate,
             '资产负债率':leverage_ratio,
             '销售收现比':cash_revenu_ratio,
             '经营性现金流/净利润':cash_profit_ratio,
+            '总资产增长率':total_assets_growth_rate,
             "pe":pe,
             "pb":pb
             }
@@ -215,10 +226,16 @@ class BusinessFeatureAnalysis:
         return format(num/sum,'.2%')
     
     def round(self,num):
-        return round(num,3)
+        if num != None :
+            return round(num,3)
+        else:
+            return "--"
 
     def percentageNum(self,num):
-        return str(round(num,2))+"%"
+        try:
+            return str(round(num,2))+"%"
+        except Exception:
+            return "--"
 
     def getNum(self,num):
         try:

@@ -38,7 +38,7 @@ class DebtReport:
         #self.toal_other_payables=data[35]        #其他应付款合计
         self.interest_payable=data["interest_payable"][0]  #应付利息
         #self.dividend_payable=data[37]           #应付股利
-        #self.other_payables=data["othr_payables"][0]             #其他应付款
+        self.other_payables=data["othr_payables"][0]             #其他应付款
         self.total_current_liabilities=data["total_current_liab"][0]      #流动负债合计
         self.long_term_borrowing=data["lt_loan"][0]            #长期借款
         self.deferred_income_tax_liabilities=data["dt_liab"][0]#递延所得税负债
