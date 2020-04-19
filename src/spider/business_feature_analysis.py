@@ -131,7 +131,8 @@ class BusinessFeatureAnalysis:
             total_assets_turnover.append(self.round(main_report["total_assets_turnover"])) 
 
             #(应收账款 + 其他应收款 + 预付账款 + 存货)  -(应付账款 + 预收款项 + 其他应付款)
-            nwc=(self.getNum(debt_report["bills_accounts_receivable"]) +self.getNum(debt_report["other_receivable"]) + self.getNum(debt_report["prepaid_accounts"] + self.getNum(debt_report["inventory"]))) - (self.getNum(debt_report["bills_account_payable"])+self.getNum(debt_report["accounts_received_in_advance"]+self.getNum(debt_report["other_payables"])))
+            
+            nwc=(self.getNum(debt_report["bills_accounts_receivable"]) +self.getNum(debt_report["other_receivable"]) + self.getNum(debt_report["prepaid_accounts"] + self.getNum(debt_report["inventory"]))) - (self.getNum(debt_report["bills_account_payable"])+self.getNum(debt_report["accounts_received_in_advance"]) +self.getNum(debt_report["other_payables"]))
             
             net_working_capital.append(format(int(nwc),","))
 
@@ -238,6 +239,8 @@ class BusinessFeatureAnalysis:
             return "--"
 
     def getNum(self,num):
+        if num == None:
+            return 0
         try:
             return float(num)
         except Exception:
